@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Code Infinity Quiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a14;
+  --surface: #12121f;
+  --card: #181828;
+  --border: rgba(255,255,255,0.07);
+  --accent: #7c5cfc;
+  --accent2: #fc5c7d;
+  --accent3: #43e97b;
+  --accent4: #f7971e;
+  --text: #f0eeff;
+  --muted: #7a7a9a;
+  --mono: 'Space Mono', monospace;
+  --sans: 'Outfit', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--sans);overflow-x:hidden}
+
+/* ─── animated background ─── */
+.bg-layer{position:fixed;inset:0;z-index:0;pointer-events:none}
+.bg-layer canvas{width:100%;height:100%}
+.mesh{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 60% 50% at 15% 20%, rgba(124,92,252,0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 85% 75%, rgba(252,92,125,0.13) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 60% at 55% 10%, rgba(67,233,123,0.08) 0%, transparent 60%);
+  animation: meshShift 12s ease-in-out infinite alternate;
+}
+@keyframes meshShift{
+  0%{opacity:.8;filter:blur(0px)}
+  100%{opacity:1;filter:blur(2px)}
+}
+.grid-lines{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(124,92,252,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,92,252,0.04) 1px, transparent 1px);
+  background-size:60px 60px;
+}
+.stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+/* ─── wrapper ─── */
+#app{position:relative;z-index:10;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:2rem 1rem 4rem}
+
+/* ─── hero header ─── */
+.hero{text-align:center;margin-bottom:2.5rem;animation:fadeUp .8s ease both}
+.hero-logo{display:inline-flex;align-items:center;gap:10px;margin-bottom:1rem}
+.infinity-icon{font-size:28px;filter:drop-shadow(0 0 12px rgba(124,92,252,.8))}
+.brand{font-size:13px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);font-family:var(--mono)}
+.hero h1{font-size:clamp(2rem,6vw,3.5rem);font-weight:800;line-height:1.1;margin-bottom:.5rem;
+  background:linear-gradient(135deg,#fff 0%,#c4b5fd 40%,#fc5c7d 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero p{font-size:16px;color:var(--muted);font-weight:300}
+.pill{display:inline-flex;align-items:center;gap:6px;background:rgba(124,92,252,.15);border:1px solid rgba(124,92,252,.3);color:#c4b5fd;font-size:12px;padding:4px 14px;border-radius:50px;margin-bottom:1.2rem;font-family:var(--mono)}
+.dot{width:6px;height:6px;border-radius:50%;background:#43e97b;box-shadow:0 0 6px #43e97b;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ─── progress ─── */
+.progress-wrap{width:100%;max-width:740px;margin-bottom:1.5rem;animation:fadeUp .8s .2s ease both;opacity:0;animation-fill-mode:forwards}
+.progress-top{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:8px;font-family:var(--mono)}
+.progress-track{height:4px;background:rgba(255,255,255,.08);border-radius:50px;overflow:hidden}
+.progress-fill{height:4px;border-radius:50px;background:linear-gradient(90deg,#7c5cfc,#fc5c7d);transition:width .5s cubic-bezier(.4,0,.2,1)}
+
+/* ─── set tabs ─── */
+.set-tabs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:740px;width:100%;margin-bottom:1.5rem;animation:fadeUp .8s .3s ease both;opacity:0;animation-fill-mode:forwards}
+.tab{padding:7px 16px;border-radius:50px;border:1px solid var(--border);background:var(--surface);font-size:13px;color:var(--muted);cursor:pointer;transition:all .2s;font-family:var(--mono);letter-spacing:.03em}
+.tab:hover{border-color:rgba(124,92,252,.4);color:var(--text)}
+.tab.active{background:rgba(124,92,252,.2);border-color:rgba(124,92,252,.6);color:#c4b5fd}
+.tab.done{background:rgba(67,233,123,.12);border-color:rgba(67,233,123,.4);color:#43e97b}
+
+/* ─── question card ─── */
+.q-card{width:100%;max-width:740px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:2rem;
+  box-shadow:0 0 0 1px rgba(124,92,252,.05), 0 40px 80px rgba(0,0,0,.5);
+  animation:fadeUp .6s .1s ease both;opacity:0;animation-fill-mode:forwards;
+}
+.q-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem}
+.set-label{font-size:12px;font-family:var(--mono);color:var(--muted)}
+.set-label span{color:var(--accent);font-weight:700}
+.q-num{font-size:11px;font-family:var(--mono);color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:4px 12px;border-radius:50px}
+.q-text{font-size:clamp(16px,2.5vw,20px);font-weight:600;line-height:1.5;margin-bottom:1.5rem;color:#f0eeff}
+.options{display:flex;flex-direction:column;gap:10px}
+.opt{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 18px;border-radius:12px;
+  border:1px solid var(--border);background:var(--surface);
+  cursor:pointer;font-size:15px;color:var(--text);
+  transition:all .2s;text-align:left;
+}
+.opt:hover:not(.locked){border-color:rgba(124,92,252,.5);background:rgba(124,92,252,.08);transform:translateX(4px)}
+.opt-letter{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;flex-shrink:0;transition:all .2s}
+.opt.correct{border-color:rgba(67,233,123,.5);background:rgba(67,233,123,.08)}
+.opt.correct .opt-letter{background:rgba(67,233,123,.2);border-color:#43e97b;color:#43e97b}
+.opt.wrong{border-color:rgba(252,92,125,.5);background:rgba(252,92,125,.08)}
+.opt.wrong .opt-letter{background:rgba(252,92,125,.2);border-color:#fc5c7d;color:#fc5c7d}
+.opt.locked{cursor:default}
+.opt.highlight-correct{border-color:rgba(67,233,123,.3);background:rgba(67,233,123,.04)}
+.opt.highlight-correct .opt-letter{border-color:rgba(67,233,123,.4);color:#43e97b}
+
+.feedback{
+  margin-top:1rem;padding:12px 16px;border-radius:12px;font-size:14px;line-height:1.6;
+  display:flex;gap:10px;align-items:flex-start;
+}
+.feedback.correct{background:rgba(67,233,123,.08);border:1px solid rgba(67,233,123,.2);color:#a7f3c8}
+.feedback.wrong{background:rgba(252,92,125,.08);border:1px solid rgba(252,92,125,.2);color:#fca5a5}
+.fb-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+
+/* ─── nav ─── */
+.nav-row{display:flex;justify-content:space-between;align-items:center;margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+.nav-score{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:center}
+.nav-score b{color:var(--text);font-size:16px}
+.btn{padding:10px 24px;border-radius:10px;border:1px solid var(--border);background:var(--surface);font-size:14px;cursor:pointer;color:var(--muted);transition:all .2s;font-family:var(--sans);font-weight:500}
+.btn:hover{border-color:rgba(124,92,252,.4);color:var(--text)}
+.btn:disabled{opacity:.3;cursor:default}
+.btn.primary{background:linear-gradient(135deg,#7c5cfc,#a855f7);border-color:transparent;color:#fff;font-weight:600;box-shadow:0 0 20px rgba(124,92,252,.3)}
+.btn.primary:hover{box-shadow:0 0 30px rgba(124,92,252,.5);transform:translateY(-1px)}
+
+/* ─── score screen ─── */
+.score-screen{width:100%;max-width:740px;animation:fadeUp .6s ease both}
+.score-hero{text-align:center;margin-bottom:2rem}
+.score-trophy{font-size:64px;margin-bottom:1rem;display:block;animation:bounce 1s ease}
+@keyframes bounce{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+.score-num{font-size:72px;font-weight:800;font-family:var(--mono);
+  background:linear-gradient(135deg,#43e97b,#7c5cfc);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.score-label{font-size:18px;color:var(--muted);margin-top:4px}
+.score-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:2rem}
+.score-cell{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1rem;text-align:center}
+.score-cell .set-name{font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+.score-cell .cell-score{font-size:24px;font-weight:700;font-family:var(--mono)}
+.score-cell .cell-bar{height:3px;border-radius:50px;margin-top:8px;background:rgba(255,255,255,.05)}
+.score-cell .cell-fill{height:3px;border-radius:50px}
+.restart{display:block;width:100%;padding:16px;border-radius:14px;border:none;
+  background:linear-gradient(135deg,#7c5cfc,#fc5c7d);color:#fff;font-size:16px;font-weight:700;
+  cursor:pointer;font-family:var(--sans);letter-spacing:.02em;
+  box-shadow:0 0 40px rgba(124,92,252,.3);transition:all .3s;
+}
+.restart:hover{box-shadow:0 0 60px rgba(124,92,252,.5);transform:translateY(-2px)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* sparkles */
+.sparkle{position:fixed;pointer-events:none;z-index:999;font-size:20px;animation:sparkle-anim 1s ease forwards}
+@keyframes sparkle-anim{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-60px) scale(.3)}}
+
+.credit{text-align:center;margin-top:1.5rem;font-size:13px;color:var(--muted);font-family:var(--mono);letter-spacing:.04em}
+.credit span{color:#c4b5fd;font-weight:700}
+.footer-credit{text-align:center;margin-top:2rem;font-size:12px;color:var(--muted);font-family:var(--mono);letter-spacing:.05em;opacity:.7}
+.footer-credit span{color:#c4b5fd;font-weight:700}
+  .score-grid{grid-template-columns:repeat(2,1fr)}
+  .q-card{padding:1.25rem}
+  .score-num{font-size:54px}
+}
+</style>
+</head>
+<body>
+
+<div class="mesh"></div>
+<div class="grid-lines"></div>
+<div class="stars" id="stars"></div>
+
+<div id="app"></div>
+
+<script>
+// ─── stars ───
+const starsEl = document.getElementById('stars');
+for(let i=0;i<120;i++){
+  const s = document.createElement('div');
+  const size = Math.random()*2+1;
+  s.style.cssText=`position:absolute;left:${Math.random()*100}%;top:${Math.random()*100}%;width:${size}px;height:${size}px;border-radius:50%;background:rgba(255,255,255,${Math.random()*.6+.1});animation:pulse ${2+Math.random()*3}s ${Math.random()*3}s infinite alternate`;
+  starsEl.appendChild(s);
+}
+
+// ─── quiz data ───
+const SETS = [
+  {id:1,title:"Setup & Foundations",day:"Day 1",colors:["#7c5cfc","#a855f7"],
+    qs:[
+      {q:"What does JAVA_HOME environment variable point to?",opts:["The Java project folder","The JDK installation directory","The Maven repository","The VS Code workspace"],ans:1,exp:"JAVA_HOME must point to your JDK installation so tools like Maven can find the Java compiler."},
+      {q:"Which command checks if Git is installed on your system?",opts:["git status","git --version","git init","git check"],ans:1,exp:"'git --version' prints the installed Git version, confirming it's available on your system."},
+      {q:"What does 'git push' do?",opts:["Downloads code from remote","Merges two branches","Uploads local commits to the remote repo","Creates a new branch"],ans:2,exp:"'git push' uploads your local committed changes to the remote repository (e.g. GitHub)."},
+      {q:"Spring Initializr is used to...",opts:["Deploy apps to the cloud","Bootstrap a new Spring Boot project","Create Git repositories","Test REST APIs"],ans:1,exp:"Spring Initializr (start.spring.io) generates a ready-to-run Spring Boot project with your chosen dependencies."},
+      {q:"Which file lists Maven project dependencies?",opts:["build.gradle","settings.xml","pom.xml","application.properties"],ans:2,exp:"pom.xml (Project Object Model) is Maven's config file where you declare all project dependencies."},
+      {q:"Which command creates a new local Git repository?",opts:["git start","git new","git init","git create"],ans:2,exp:"'git init' initializes a new empty Git repository in the current directory, creating a hidden .git folder."},
+      {q:"What does 'git clone' do?",opts:["Copies a remote repo to your local machine","Creates a new branch","Deletes a repository","Merges two repositories"],ans:0,exp:"'git clone <url>' downloads a full copy of a remote repository including its entire history to your machine."},
+      {q:"Which command saves staged changes with a message?",opts:["git save -m 'msg'","git commit -m 'msg'","git push -m 'msg'","git store -m 'msg'"],ans:1,exp:"'git commit -m' creates a snapshot of staged changes with a descriptive message in your local repo history."},
+      {q:"In Maven, 'mvn clean install' does what?",opts:["Only deletes build files","Cleans previous builds and compiles + packages the project","Only runs tests","Deploys to production"],ans:1,exp:"'mvn clean install' first deletes the target folder, then compiles, tests, and packages your project into a JAR."},
+      {q:"What file extension does a compiled Maven project produce?",opts:[".class",".war",".jar",".zip"],ans:2,exp:"Maven packages a Spring Boot project into a .jar (Java ARchive) file that can be run with 'java -jar'."},
+      {q:"Which VS Code extension is most useful for Java development?",opts:["Python","Extension Pack for Java","Live Server","Prettier"],ans:1,exp:"The 'Extension Pack for Java' by Microsoft bundles language support, debugger, Maven tools, and more for Java in VS Code."},
+      {q:"What does 'git status' show?",opts:["Remote repo info","Which files are staged, modified, or untracked","Commit history","Branch list"],ans:1,exp:"'git status' shows the current state of your working directory — which files are staged, modified, or untracked."},
+      {q:"Where is Spring Initializr hosted online?",opts:["github.com/spring","start.spring.io","spring.io/start","initializr.com"],ans:1,exp:"Spring Initializr is hosted at start.spring.io — it's the official tool to bootstrap Spring Boot projects."},
+      {q:"Which Java version is recommended for modern Spring Boot 3.x?",opts:["Java 8","Java 11","Java 17+","Java 6"],ans:2,exp:"Spring Boot 3.x requires Java 17 or higher as its minimum supported version."},
+      {q:"What does 'git log' display?",opts:["Pending changes","A list of all commits in the repository","Remote branches","File differences"],ans:1,exp:"'git log' shows the commit history of the current branch, including commit hashes, authors, dates, and messages."}
+    ]
+  },
+  {id:2,title:"HTML / CSS / JS",day:"Day 1",colors:["#43e97b","#38f9d7"],
+    qs:[
+      {q:"Which HTML tag is used to load an external JavaScript file?",opts:["<js>","<link>","<script>","<style>"],ans:2,exp:"<script src='file.js'> is the correct tag for loading external JS files into your HTML page."},
+      {q:"What does DOM stand for?",opts:["Document Object Model","Data Output Method","Design Object Module","Dynamic Object Mapping"],ans:0,exp:"DOM = Document Object Model. It's the browser's tree-structured representation of your HTML that JavaScript can manipulate."},
+      {q:"Which JS method selects an element by its id?",opts:["querySelector('id')","getElement('id')","getElementById('id')","findById('id')"],ans:2,exp:"document.getElementById('id') returns the element with that specific id attribute."},
+      {q:"What is a CDN used for in frontend development?",opts:["Storing database records","Serving libraries from fast global servers","Running backend Java code","Managing Git branches"],ans:1,exp:"CDN (Content Delivery Network) hosts libraries globally so you can load them quickly with a <script src> tag."},
+      {q:"In CSS, which property changes text color?",opts:["font-color","background","color","text-style"],ans:2,exp:"The 'color' property sets text color in CSS. Note: 'font-color' does not exist in CSS."},
+      {q:"What does innerHTML do in JavaScript?",opts:["Loads external HTML files","Gets or sets the HTML content inside an element","Adds a new HTML file","Deletes an element"],ans:1,exp:"innerHTML lets you get or set the HTML markup contained within a DOM element — very useful for dynamic rendering."},
+      {q:"Which HTML attribute is used to call a JS function on a button click?",opts:["onpress","onclick","onaction","trigger"],ans:1,exp:"The onclick attribute lets you run a JavaScript function when the element is clicked: <button onclick='myFunc()'>"},
+      {q:"In CSS, what does 'display: flex' do?",opts:["Makes text bold","Creates a flexible box layout container","Hides the element","Adds a border"],ans:1,exp:"display:flex turns an element into a flex container, enabling powerful alignment and layout of its children."},
+      {q:"Which JS method adds an element to the end of an array?",opts:["append()","add()","push()","insert()"],ans:2,exp:"Array.push() adds one or more elements to the END of an array and returns the new length."},
+      {q:"What does 'querySelector' return?",opts:["All matching elements","The first matching element","An array of elements","The parent element"],ans:1,exp:"document.querySelector() returns the FIRST element that matches the given CSS selector, or null if none found."},
+      {q:"Which HTML tag creates a hyperlink?",opts:["<link>","<href>","<a>","<url>"],ans:2,exp:"The <a href='url'> anchor tag creates hyperlinks to other pages, files, email addresses, or locations on the same page."},
+      {q:"What is the purpose of the <head> tag in HTML?",opts:["Display page content","Hold metadata, links, and scripts not shown directly","Create a heading","Define navigation"],ans:1,exp:"<head> contains metadata like <title>, CSS links, and <script> tags that aren't rendered directly in the page body."},
+      {q:"In JavaScript, how do you declare a variable that can't be reassigned?",opts:["var x = 5","let x = 5","const x = 5","fixed x = 5"],ans:2,exp:"'const' declares a block-scoped variable whose binding cannot be reassigned after initialization."},
+      {q:"Which CSS property controls spacing inside an element's border?",opts:["margin","spacing","padding","border-gap"],ans:2,exp:"padding controls the space between an element's content and its border. margin controls space outside the border."},
+      {q:"What does 'addEventListener' do in JavaScript?",opts:["Creates a new HTML element","Attaches an event handler to an element","Removes an element","Sends an HTTP request"],ans:1,exp:"addEventListener('event', fn) attaches a function that fires when the specified event (click, keyup, etc.) occurs on the element."}
+    ]
+  },
+  {id:3,title:"JSON & Spring Boot",day:"Day 1–2",colors:["#f7971e","#ffd200"],
+    qs:[
+      {q:"Which annotation marks a Spring Boot REST controller?",opts:["@Controller","@RestController","@Service","@Repository"],ans:1,exp:"@RestController combines @Controller and @ResponseBody, making every method return JSON by default."},
+      {q:"What is a POJO?",opts:["A Spring annotation","A Plain Old Java Object — a simple class with fields","A type of HTTP request","A Maven plugin"],ans:1,exp:"POJO = Plain Old Java Object. No framework magic — just a class with fields, constructors, getters and setters."},
+      {q:"JSON stands for...",opts:["Java Object Notation","JavaScript Object Notation","Java Online Notation","JavaScript Online Network"],ans:1,exp:"JSON = JavaScript Object Notation. It's a lightweight text format for exchanging data between frontend and backend."},
+      {q:"Which annotation handles GET /api/users in Spring Boot?",opts:["@PostMapping('/api/users')","@GetMapping('/api/users')","@RequestMapping('GET')","@HttpGet('/api/users')"],ans:1,exp:"@GetMapping('/api/users') maps HTTP GET requests to that path in a Spring @RestController."},
+      {q:"The fetch() API in JavaScript is used to...",opts:["Fetch files from disk","Make HTTP requests from the browser","Render HTML templates","Connect to databases directly"],ans:1,exp:"fetch() is the browser's built-in API for making HTTP requests to backends or any REST API."},
+      {q:"In a JSON object, data is stored as...",opts:["Arrays only","Key-value pairs","Rows and columns","XML tags"],ans:1,exp:"JSON stores data as key-value pairs: {\"name\": \"Alice\", \"age\": 25}. Keys are always strings, values can be various types."},
+      {q:"Which library does Spring Boot use to convert Java objects to JSON?",opts:["Gson","JAXB","Jackson","Fastjson"],ans:2,exp:"Spring Boot uses Jackson by default to automatically serialize Java objects to JSON and deserialize JSON back to objects."},
+      {q:"What does @RequestBody annotation do in Spring Boot?",opts:["Returns JSON to client","Reads the HTTP request body and maps it to a Java object","Sets the response status","Reads URL parameters"],ans:1,exp:"@RequestBody tells Spring to read the incoming HTTP request body and deserialize it into the annotated Java parameter."},
+      {q:"What is the Spring Boot main class annotated with?",opts:["@RestController","@Configuration","@SpringBootApplication","@Component"],ans:2,exp:"@SpringBootApplication is a composite annotation that enables auto-configuration, component scanning, and config support."},
+      {q:"In JSON, how is an array represented?",opts:["{ }","( )","[ ]","< >"],ans:2,exp:"JSON arrays are wrapped in square brackets [ ] and contain comma-separated values: [\"a\", \"b\", \"c\"]."},
+      {q:"Which port does Spring Boot run on by default?",opts:["3000","8000","8080","443"],ans:2,exp:"Spring Boot starts an embedded Tomcat server on port 8080 by default. You can change it in application.properties."},
+      {q:"What is Jackson's role when Spring returns a User object from a REST controller?",opts:["It validates the user","It converts the User object to a JSON string automatically","It saves the user to database","It logs the request"],ans:1,exp:"Jackson serializes the Java User object into a JSON string that is sent as the HTTP response body automatically."},
+      {q:"What does fetch().then(res => res.json()) do?",opts:["Sends a POST request","Parses the HTTP response body as JSON","Converts JSON to a string","Sets request headers"],ans:1,exp:"res.json() parses the HTTP response body as JSON and returns a Promise that resolves with the resulting JavaScript object."},
+      {q:"Which annotation in Spring Boot is used for dependency injection?",opts:["@Inject","@Resource","@Autowired","@Wire"],ans:2,exp:"@Autowired tells Spring to automatically inject a dependency (like a service) into the annotated field or constructor."},
+      {q:"In Spring Boot, @Service annotation marks a class as...",opts:["A REST endpoint","A business logic component managed by Spring","A database table","A configuration file"],ans:1,exp:"@Service marks a class as a Spring-managed service bean that holds business logic, enabling it for dependency injection."}
+    ]
+  },
+  {id:4,title:"REST API & CRUD",day:"Day 3",colors:["#fc5c7d","#ff9a9e"],
+    qs:[
+      {q:"Which HTTP method is used to CREATE a new resource?",opts:["GET","PUT","POST","DELETE"],ans:2,exp:"POST sends data to the server to create a new resource. It's mapped with @PostMapping in Spring Boot."},
+      {q:"What HTTP status code means 'resource not found'?",opts:["200","201","404","500"],ans:2,exp:"404 Not Found is returned when the server can't locate the requested resource."},
+      {q:"PUT vs PATCH — what's the key difference?",opts:["PUT deletes, PATCH creates","PUT replaces the whole resource, PATCH partially updates","They are identical","PATCH is deprecated"],ans:1,exp:"PUT replaces the entire resource with new data. PATCH only updates the specific fields you send."},
+      {q:"@PathVariable in Spring Boot extracts...",opts:["A query param like ?id=1","A value from the request body","A variable from the URL path like /users/{id}","A header value"],ans:2,exp:"@PathVariable binds a URI template variable like /users/{id} to a Java method parameter."},
+      {q:"What status code does a successful DELETE return?",opts:["200","201","204","404"],ans:2,exp:"204 No Content is the standard response for a successful DELETE — processed but no response body."},
+      {q:"What does CRUD stand for?",opts:["Create Read Update Delete","Connect Run Update Deploy","Clone Run Upload Debug","Create Render Update Deploy"],ans:0,exp:"CRUD = Create, Read, Update, Delete — the four fundamental operations for managing persistent data in any application."},
+      {q:"Which HTTP status code means 'successfully created'?",opts:["200 OK","201 Created","202 Accepted","204 No Content"],ans:1,exp:"201 Created is the standard response for a successful POST that created a new resource on the server."},
+      {q:"What does ResponseEntity in Spring Boot allow you to do?",opts:["Only return strings","Return any response body plus control the HTTP status code and headers","Only handle errors","Only return JSON"],ans:1,exp:"ResponseEntity lets you build a full HTTP response — including status code, headers, and body — giving you complete control."},
+      {q:"Which annotation maps a method to HTTP POST requests?",opts:["@GetMapping","@PostMapping","@PutMapping","@CreateMapping"],ans:1,exp:"@PostMapping maps an HTTP POST request to the annotated controller method in a Spring @RestController."},
+      {q:"What does @RequestParam extract in Spring Boot?",opts:["A path segment like /users/{id}","A query string parameter like ?name=Alice","The request body","A request header"],ans:1,exp:"@RequestParam binds query string parameters (like ?name=Alice) to method parameters in a Spring controller."},
+      {q:"REST stands for...",opts:["Remote Execution State Transfer","Representational State Transfer","Remote State Entity Transfer","Repeatable State Test"],ans:1,exp:"REST = Representational State Transfer. It's an architectural style for APIs that uses HTTP methods and stateless communication."},
+      {q:"Which HTTP method is IDEMPOTENT — safe to call multiple times with the same result?",opts:["POST","GET and PUT","DELETE only","None of them"],ans:1,exp:"GET (no side effects) and PUT (always sets to the same state) are idempotent. POST creates a new resource each time."},
+      {q:"What does HttpStatus.CREATED represent?",opts:["HTTP 200","HTTP 201","HTTP 204","HTTP 400"],ans:1,exp:"HttpStatus.CREATED maps to HTTP 201, the standard status for a successful resource creation via POST."},
+      {q:"In a REST API, what should the URL /api/users/5 represent?",opts:["All users","User with id=5","Create a user","Delete all users"],ans:1,exp:"RESTful convention uses /api/resource/{id} to identify a specific resource — here the user with id 5."},
+      {q:"What HTTP method is typically used to retrieve a list of all users?",opts:["POST /api/users","DELETE /api/users","GET /api/users","PUT /api/users"],ans:2,exp:"GET /api/users is the RESTful convention for retrieving a collection of resources — mapped with @GetMapping in Spring Boot."}
+    ]
+  },
+  {id:5,title:"Swagger & API Docs",day:"Day 3",colors:["#c471ed","#f64f59"],
+    qs:[
+      {q:"Which dependency adds Swagger UI to Spring Boot?",opts:["spring-boot-starter-web","springdoc-openapi-starter-webmvc-ui","swagger-core","openapi-generator"],ans:1,exp:"springdoc-openapi-starter-webmvc-ui auto-generates interactive API docs from your controller annotations."},
+      {q:"Where do you access Swagger UI after starting the app?",opts:["/api-docs","/swagger","/localhost/docs","/swagger-ui.html"],ans:3,exp:"By default, Swagger UI is at http://localhost:8080/swagger-ui.html once your Spring Boot app is running."},
+      {q:"Swagger auto-reads which Spring annotations?",opts:["@Entity, @Table","@Autowired, @Bean","@GetMapping, @PostMapping, etc.","@SpringBootApplication"],ans:2,exp:"Springdoc scans @GetMapping, @PostMapping, @PutMapping, and @DeleteMapping to generate your API docs."},
+      {q:"What does the /v3/api-docs endpoint return?",opts:["The HTML docs page","A JSON spec of all your endpoints","A list of errors","The server health status"],ans:1,exp:"/v3/api-docs returns the full OpenAPI JSON specification — importable by tools like Postman."},
+      {q:"Swagger UI allows you to test APIs...",opts:["Only with Postman installed","Only for GET requests","Directly from the browser without extra tools","Only in production"],ans:2,exp:"Swagger UI lets you send real HTTP requests from the browser — no Postman or extra setup needed."},
+      {q:"What is OpenAPI?",opts:["A database standard","A specification standard for describing REST APIs in JSON/YAML","A Java framework","A Git hosting service"],ans:1,exp:"OpenAPI is a specification for describing REST APIs in a machine-readable format (JSON/YAML) — Swagger UI renders it visually."},
+      {q:"In Swagger UI, what does the 'Try it out' button do?",opts:["Generates test code","Enables you to fill in parameters and send a real HTTP request","Downloads the API spec","Opens Postman"],ans:1,exp:"'Try it out' in Swagger UI unlocks the form fields so you can enter parameters and fire a real live HTTP request from the browser."},
+      {q:"What version of OpenAPI does springdoc 2.x use?",opts:["OpenAPI 1.0","OpenAPI 2.0 (Swagger)","OpenAPI 3.x","OpenAPI 4.0"],ans:2,exp:"springdoc-openapi 2.x generates OpenAPI 3.x specifications, which is the current industry standard for REST API documentation."},
+      {q:"Which pom.xml tag specifies the Springdoc version?",opts:["<edition>","<release>","<version>","<build>"],ans:2,exp:"The <version> tag inside a <dependency> block specifies which version of the library Maven should download."},
+      {q:"What does the 'Shareable docs' feature of Swagger mean?",opts:["Auto-emails API docs","You can share the Swagger UI URL with your frontend team for integration","It generates PDFs","It creates Word documents"],ans:1,exp:"Since Swagger UI runs on a URL, you can simply share http://yourserver/swagger-ui.html with anyone who needs to integrate your API."},
+      {q:"Which Swagger feature shows expected request and response formats?",opts:["Interactive UI","Auto-documented","JSON Schema","Test without code"],ans:2,exp:"The JSON Schema section in Swagger UI shows the expected structure of request bodies and response objects for each endpoint."},
+      {q:"What groupId is used for the springdoc-openapi dependency?",opts:["com.springdoc","org.springframework","org.springdoc","io.swagger"],ans:2,exp:"The groupId for springdoc-openapi is 'org.springdoc' — as shown in the pom.xml dependency block."},
+      {q:"Can Swagger UI be used as a replacement for Postman?",opts:["No, it only shows docs","Yes, it can send real HTTP requests to your API","Only for GET requests","Only for local development"],ans:1,exp:"Swagger UI can send real HTTP requests for all methods (GET, POST, PUT, DELETE), making it a lightweight alternative to Postman."},
+      {q:"What annotation can you add to a controller method to give it a Swagger description?",opts:["@ApiInfo","@Operation","@SwaggerDoc","@Describe"],ans:1,exp:"@Operation(summary='...') from io.swagger.v3.oas.annotations adds a human-readable description to an endpoint in Swagger UI."},
+      {q:"After adding springdoc dependency and running the app, what must you do to see Swagger UI?",opts:["Write extra configuration code","Deploy to production first","Just open localhost:8080/swagger-ui.html in a browser","Install a browser extension"],ans:2,exp:"Springdoc auto-configures everything — just run the app and navigate to /swagger-ui.html. Zero extra code needed."}
+    ]
+  },
+  {id:6,title:"Deploy & Go Live",day:"Day 4",colors:["#43e97b","#7c5cfc"],
+    qs:[
+      {q:"Which platform is used to deploy the Spring Boot app in this bootcamp?",opts:["AWS EC2","Heroku","Render.com","Netlify"],ans:2,exp:"Render.com is used in this bootcamp — it supports free-tier Java deployments without a credit card."},
+      {q:"What command stages all files for a Git commit?",opts:["git commit -m","git push origin","git add .","git init"],ans:2,exp:"'git add .' stages all modified and new files in the current directory for the next commit."},
+      {q:"Correct order of Git commands to publish code?",opts:["push → add → commit","add → push → commit","add → commit → push","commit → add → push"],ans:2,exp:"Correct Git workflow: git add (stage) → git commit (save locally) → git push (upload to GitHub)."},
+      {q:"Which file configures Spring Boot server port and settings?",opts:["pom.xml","index.html","application.properties","settings.gradle"],ans:2,exp:"application.properties configures server port, database URL, and other Spring Boot runtime settings."},
+      {q:"Frontend on Netlify calls backend on Render — what must be set up?",opts:["Nothing extra needed","DNS records only","CORS (Cross-Origin Resource Sharing)","SSL certificates manually"],ans:2,exp:"CORS must be enabled on the backend so browsers allow requests from a different origin (Netlify → Render)."},
+      {q:"What file does Render.com look for to know how to build a Java app?",opts:["Dockerfile","pom.xml","app.yaml","buildspec.yml"],ans:1,exp:"Render detects a Maven project via pom.xml and uses it to run 'mvn clean install' to build your Spring Boot app."},
+      {q:"What does it mean when your app is 'live' on Render.com?",opts:["It's running on your localhost","It's accessible on the internet via a public URL","It's deployed to AWS","It's only available in your browser"],ans:1,exp:"Once deployed on Render, your app gets a public URL (*.onrender.com) accessible from anywhere on the internet."},
+      {q:"Which Spring Boot property sets the server port to 8081?",opts:["spring.port=8081","server.port=8081","app.port=8081","http.port=8081"],ans:1,exp:"server.port=8081 in application.properties tells Spring Boot's embedded Tomcat to listen on port 8081 instead of the default 8080."},
+      {q:"What does CORS stand for?",opts:["Cross-Origin Resource Sharing","Cross-Object Rendering System","Client-Origin Request Service","Cross-Origin Runtime Script"],ans:0,exp:"CORS = Cross-Origin Resource Sharing. It's a browser security mechanism that controls requests between different origins (domains/ports)."},
+      {q:"In Spring Boot, how do you enable CORS for all origins on a controller?",opts:["@NoCors","@AllowAll","@CrossOrigin","@PermitOrigins"],ans:2,exp:"@CrossOrigin (or @CrossOrigin('*')) on a controller or method allows requests from any origin, enabling frontend-backend integration."},
+      {q:"When pushing to GitHub for deployment, what must your commit contain?",opts:["Only changed Java files","All project files including pom.xml","Only the JAR file","Only application.properties"],ans:1,exp:"Render pulls your source code from GitHub and builds it — so your repo must contain all source files including pom.xml and src/."},
+      {q:"What command creates a new branch in Git?",opts:["git new branch","git branch -new","git checkout -b branchname","git create branchname"],ans:2,exp:"'git checkout -b branchname' creates a new branch AND switches to it in one command. Alternatively: 'git switch -c branchname'."},
+      {q:"Why is Netlify used for the frontend but not the backend in this bootcamp?",opts:["Netlify is free","Netlify specialises in static sites; it can't run Java servers","Netlify is faster","Netlify has better CORS support"],ans:1,exp:"Netlify is optimized for static frontend files (HTML/CSS/JS). It doesn't support running Java backend processes — that's Render's job."},
+      {q:"What does a successful 'git push' to GitHub trigger on Render.com?",opts:["Nothing — you must manually redeploy","An automatic redeploy if auto-deploy is enabled","A rollback","An email notification only"],ans:1,exp:"When auto-deploy is enabled on Render, every push to the connected GitHub branch automatically triggers a new build and deployment."},
+      {q:"Which HTTP header does the Spring backend send to allow cross-origin requests?",opts:["X-Allow-Origin","Content-Type","Access-Control-Allow-Origin","X-CORS-Policy"],ans:2,exp:"The server sends the 'Access-Control-Allow-Origin' header (e.g. with value '*') to tell browsers to allow cross-origin requests."}
+    ]
+  }
+];
+
+const LETTERS = ['A','B','C','D'];
+const SET_ICONS = ['⚙️','🎨','📦','🔌','📖','🚀'];
+const QS_PER_SET = 15;
+const TOTAL_QS = 6 * QS_PER_SET;
+
+let state = {
+  set:0, q:0,
+  answered:Array(6).fill(null).map(()=>Array(QS_PER_SET).fill(null)),
+  scores:Array(6).fill(0),
+  showScore:false
+};
+
+function spawnSparkle(x,y,correct){
+  const icons = correct ? ['✨','⭐','💫','🎉'] : ['💨','🌪️','❌','😅'];
+  for(let i=0;i<3;i++){
+    const el=document.createElement('div');
+    el.className='sparkle';
+    el.textContent=icons[Math.floor(Math.random()*icons.length)];
+    el.style.cssText=`left:${x+(-30+Math.random()*60)}px;top:${y}px`;
+    el.style.animationDelay=i*0.1+'s';
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),1200);
+  }
+}
+
+function totalAnswered(){return state.answered.flat().filter(x=>x!==null).length}
+
+function renderQuiz(){
+  const s=SETS[state.set];
+  const q=s.qs[state.q];
+  const ans=state.answered[state.set][state.q];
+  const pct=Math.round((totalAnswered()/TOTAL_QS)*100);
+
+  const setTabsHTML=SETS.map((ss,i)=>{
+    let cls='tab';
+    if(i===state.set) cls+=' active';
+    else if(state.answered[i].every(x=>x!==null)) cls+=' done';
+    return `<button class="${cls}" onclick="goSet(${i})">${SET_ICONS[i]} Set ${i+1}</button>`;
+  }).join('');
+
+  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const optsHTML=q.opts.map((o,i)=>{
+    let cls='opt';
+    if(ans!==null){
+      cls+=' locked';
+      if(i===q.ans) cls+=' correct';
+      else if(i===ans && ans!==q.ans) cls+=' wrong';
+    }
+    return `<button class="${cls}" onclick="answer(${i},event)"><span class="opt-letter">${LETTERS[i]}</span>${esc(o)}</button>`;
+  }).join('');
+
+  const fbHTML=ans!==null?`<div class="feedback ${ans===q.ans?'correct':'wrong'}"><span class="fb-icon">${ans===q.ans?'✓':'✗'}</span><span>${q.exp}</span></div>`:'';
+
+  const isLast=state.set===5&&state.q===QS_PER_SET-1;
+  const isFirst=state.set===0&&state.q===0;
+  const setScore=state.scores[state.set];
+  const setAnswered=state.answered[state.set].filter(x=>x!==null).length;
+
+  document.getElementById('app').innerHTML=`
+    <div class="hero" style="animation:fadeUp .7s ease both">
+      <div class="pill"><span class="dot"></span>Bootcamp Quiz Challenge</div>
+      <h1>Code Infinity Quiz</h1>
+      <p>4 days · 6 sets · ${TOTAL_QS} questions</p>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-top">
+        <span>Progress</span>
+        <span>${totalAnswered()}/${TOTAL_QS} answered · ${pct}%</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+    </div>
+
+    <div class="set-tabs">${setTabsHTML}</div>
+
+    <div class="q-card">
+      <div class="q-header">
+        <div class="set-label">${SET_ICONS[state.set]} <span>${s.title}</span> · ${s.day}</div>
+        <div class="q-num">Q${state.q+1} / ${QS_PER_SET}</div>
+      </div>
+      <div class="q-text">${esc(q.q)}</div>
+      <div class="options">${optsHTML}</div>
+      ${fbHTML}
+      <div class="nav-row">
+        <button class="btn" onclick="prev()" ${isFirst?'disabled':''}>← Back</button>
+        <div class="nav-score">
+          <b>${setScore}</b>/${setAnswered||'—'}<br>
+          <span style="font-size:11px">this set</span>
+        </div>
+        ${isLast
+          ?`<button class="btn primary" onclick="showScore()">Results 🏆</button>`
+          :`<button class="btn primary" onclick="next()">Next →</button>`
+        }
+      </div>
+    </div>
+    <div class="footer-credit">by <span>Sidra Kounain</span></div>
+  `;
+}
+
+function renderScore(){
+  const total=state.scores.reduce((a,b)=>a+b,0);
+  const pct=Math.round((total/TOTAL_QS)*100);
+  const trophy=pct>=90?'🏆':pct>=70?'🥇':pct>=50?'💪':'📚';
+  const msg=pct>=90?'Absolutely crushing it!':pct>=70?'Really solid work!':pct>=50?'Good effort, keep going!':'Time to review and try again!';
+  const setColors=['#7c5cfc','#43e97b','#f7971e','#fc5c7d','#c471ed','#43e97b'];
+
+  const cellsHTML=SETS.map((s,i)=>`
+    <div class="score-cell">
+      <div class="set-name">${SET_ICONS[i]} ${s.title}</div>
+      <div class="cell-score" style="color:${setColors[i]}">${state.scores[i]}/${QS_PER_SET}</div>
+      <div class="cell-bar"><div class="cell-fill" style="width:${(state.scores[i]/QS_PER_SET)*100}%;background:${setColors[i]}"></div></div>
+    </div>
+  `).join('');
+
+  document.getElementById('app').innerHTML=`
+    <div class="hero" style="animation:fadeUp .7s ease both">
+      <h1>Quiz Complete!</h1>
+    </div>
+    <div class="score-screen">
+      <div class="score-hero">
+        <span class="score-trophy">${trophy}</span>
+        <div class="score-num">${total}/${TOTAL_QS}</div>
+        <div class="score-label">${pct}% · ${msg}</div>
+      </div>
+      <div class="score-grid">${cellsHTML}</div>
+      <button class="restart" onclick="restart()">🔄 Try Again</button>
+      <div class="credit">crafted by <span>Sidra Kounain</span></div>
+    </div>
+  `;
+}
+
+function answer(i,e){
+  if(state.answered[state.set][state.q]!==null)return;
+  state.answered[state.set][state.q]=i;
+  const correct=i===SETS[state.set].qs[state.q].ans;
+  if(correct) state.scores[state.set]++;
+  if(e){const r=e.target.getBoundingClientRect();spawnSparkle(r.left+r.width/2,r.top,correct)}
+  renderQuiz();
+}
+function next(){
+  if(state.q<QS_PER_SET-1){state.q++}else if(state.set<5){state.set++;state.q=0}
+  renderQuiz();
+}
+function prev(){
+  if(state.q>0){state.q--}else if(state.set>0){state.set--;state.q=QS_PER_SET-1}
+  renderQuiz();
+}
+function goSet(i){state.set=i;state.q=0;renderQuiz()}
+function showScore(){state.showScore=true;renderScore()}
+function restart(){state={set:0,q:0,answered:Array(6).fill(null).map(()=>Array(QS_PER_SET).fill(null)),scores:Array(6).fill(0),showScore:false};renderQuiz()}
+
+renderQuiz();
+</script>
+</body>
+</html>
